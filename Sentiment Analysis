@@ -1,0 +1,52 @@
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.svm import LinearSVC
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+import pandas as pd
+# Downloading necessary NLTK resources
+nltk.download('stopwords')
+nltk.download('punkt')
+nltk.download('wordnet')
+# Reading the sample data from file
+sample_data_path ='IMDB Dataset.csv'
+sample_data = pd.read_csv(sample_data_path)
+sample_data = sample_data.sample(frac=1).reset_index(drop=True)  # Shuffle the data
+# Preprocessing the sample_data
+lemmatizer = WordNetLemmatizer()
+stop_words = set(stopwords.words('english'))
+processed_data = []
+labels = []
+for review, sentiment in zip(sample_data['review'], sample_data['sentiment']):
+    tokens = word_tokenize(review.lower())
+    cleaned_tokens = [lemmatizer.lemmatize(token) for token in tokens if token.isalnum() and token not in stop_words]
+    processed_data.append(' '.join(cleaned_tokens))
+    labels.append(sentiment)
+# Vectorizing the text data
+vectorizer = TfidfVectorizer()
+X_vec = vectorizer.fit_transform(processed_data)
+# Splitting the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X_vec, labels, test_size=0.2, random_state=42)
+# Training the classifier
+classifier = LinearSVC()
+classifier.fit(X_train, y_train)
+# Predicting the training data
+train_predictions = classifier.predict(X_train)
+train_accuracy = accuracy_score(y_train, train_predictions)
+print("Training Accuracy:", train_accuracy)
+# Evaluating the classifier on the testing data
+test_predictions = classifier.predict(X_test)
+test_accuracy = accuracy_score(y_test, test_predictions)
+print("Testing Accuracy:", test_accuracy)
+# User input
+user_review = input("Enter your review: ")
+# Preprocessing and vectorizing the user input
+user_processed = ' '.join([lemmatizer.lemmatize(token.lower()) for token in word_tokenize(user_review) if token.isalnum() and token not in stop_words])
+user_vec = vectorizer.transform([user_processed])
+# Making prediction on the user input
+prediction = classifier.predict(user_vec)[0]
+# Output the prediction
+print("Review sentiment:", prediction)
